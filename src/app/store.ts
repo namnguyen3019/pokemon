@@ -1,10 +1,13 @@
 import { Action, ThunkAction, configureStore } from '@reduxjs/toolkit';
-import pokemonsReducer from '../features/Pokemon/pokemonsSlice';
+import { apiSlice } from '../api/apiSlice';
 
 export const store = configureStore({
   reducer: {
-    pokemons: pokemonsReducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
   },
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware().concat(apiSlice.middleware),
+  devTools: true,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

@@ -2,8 +2,7 @@ import React from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PokemonItem = (props: any) => {
-  const { name, icon } = props.details;
-
+  const { id, name, icon, weight} = props.details;
   const handleAddToCart = () => {
     // Implement your add to cart logic here
   };

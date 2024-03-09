@@ -1,39 +1,66 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '../../app/store';
+import { EntityState, createEntityAdapter } from '@reduxjs/toolkit';
+import axios from 'axios';
+import { apiSlice } from '../../api/apiSlice';
 
 interface Pokemon {
   id: number;
   name: string;
   icon: string;
   weight: number;
-  price: number | null;
 }
 
 interface PokemonListState {
   pokemons: Pokemon[];
-  selectedPokemon: Pokemon | null;
 }
 
-const initialState: PokemonListState = {
-  pokemons: [{
-    'id': 1,
-    "name": "pikachu",
-    "icon": "abc.com",
-    "weight": 100,
-    "price": null
-  }],
-  selectedPokemon: null,
-};
-
-export const pokemonSlice = createSlice({
-  name: 'pokemon',
-  initialState,
-  reducers: {
-
-  },
+const pokemonsAdapter = createEntityAdapter<Pokemon>({
+  selectId: (a: Pokemon) => a.id,
 });
 
-export const selectAllPokemons = (state: RootState) => state.pokemons.pokemons;
-export const selectSelectedPokemon = (state: RootState) => state.pokemons.selectedPokemon;
+const initialState: EntityState<Pokemon> = pokemonsAdapter.getInitialState();
 
-export default pokemonSlice.reducer;
+async function getPokemonDetails(url: string){
+  try {
+    const { data } = await axios.get(url);
+    const weight = data.weight;
+    const icon = data.sprites.front_default;
+    const id = data.id;
+    return { id, weight, icon, name: data.name };
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export const pokemonsApiSlice = apiSlice.injectEndpoints({
+  endpoints: builder => ({
+    getPokemons: builder.query<EntityState<Pokemon>, void>({
+      query: () => '/',
+      transformResponse: async responseData => {
+        const results = responseData.results;
+
+        const pokemons = await Promise.all(
+          results.map(async pokemon => {
+            try {
+              const pokemonDetails = await getPokemonDetails(pokemon.url);
+              return pokemonDetails;
+            } catch (error) {
+              console.error(error);
+              return null;
+            }
+          }),
+        );
+
+        // Filter out any null values (failed requests)
+        const filteredPokemons = pokemons.filter(pokemon => pokemon !== null);
+        return pokemonsAdapter.setAll(initialState, filteredPokemons);
+      },
+      providesTags: (result, error, arg) => [
+        { type: 'Pokemon', id: "LIST" },
+        ...result?.ids.map(id => ({ type: 'Pokemon', id }))
+    ]
+    }),
+  }),
+});
+
+export const { useGetPokemonsQuery } = pokemonsApiSlice;
