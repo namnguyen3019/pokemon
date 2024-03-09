@@ -1,39 +1,56 @@
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @format
- */
-
-'use strict';
-
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import {Animated, StyleSheet, View} from 'react-native';
-import {useViewportUnits, useBounceAnimation} from '../app/hooks';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity
+} from 'react-native';
 
-const Header = () => {
-  const {vh} = useViewportUnits();
-  const bounce = useBounceAnimation();
-  const height = 40 * vh;
+function Header() {
+  const navigation = useNavigation();
 
   return (
-    <View style={styles.container}>
-      <Animated.Image
-        accessibilityRole={'image'}
-        source={require('./logo.gif')}
-        style={{height, transform: [{translateY: bounce}]}}
-      />
-    </View>
+    <SafeAreaView style={styles.container}>
+
+        <Text style={styles.title}>Poke Store</Text>
+
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('Cart')}>
+        <Text style={styles.buttonText}>Go To Cart</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
+    display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    alignContent: 'flex-start',
+  },
+  title: {
+    flex: 3,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  button: {
+    flex: 1,
+    marginRight: 20,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff9900',
+    
+  },
+  buttonText: {
+    textAlign: 'center',
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
+
 export default Header;
