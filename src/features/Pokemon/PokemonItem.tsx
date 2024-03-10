@@ -1,10 +1,13 @@
 import React from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAppDispatch } from '../../app/hooks';
+import { addItemToCart } from '../Cart/cartSlice';
 
 const PokemonItem = (props: any) => {
   const { id, name, icon, weight} = props.details;
+  const dispatch = useAppDispatch();
   const handleAddToCart = () => {
-    // Implement your add to cart logic here
+    dispatch(addItemToCart({id, name, weight}))
   };
 
   const screenWidth = Dimensions.get('window').width;

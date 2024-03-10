@@ -2,24 +2,20 @@ import { EntityState, createEntityAdapter } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { apiSlice } from '../../api/apiSlice';
 
-interface Pokemon {
+export interface Pokemon {
   id: number;
   name: string;
   icon: string;
   weight: number;
 }
 
-interface PokemonListState {
-  pokemons: Pokemon[];
-}
-
 const pokemonsAdapter = createEntityAdapter<Pokemon>({
   selectId: (a: Pokemon) => a.id,
 });
 
-const initialState: EntityState<Pokemon> = pokemonsAdapter.getInitialState();
+const initialState = pokemonsAdapter.getInitialState();
 
-async function getPokemonDetails(url: string){
+async function getPokemonDetails(url: string): Promise<Pokemon> {
   try {
     const { data } = await axios.get(url);
     const weight = data.weight;
@@ -33,14 +29,14 @@ async function getPokemonDetails(url: string){
 }
 
 export const pokemonsApiSlice = apiSlice.injectEndpoints({
-  endpoints: builder => ({
-    getPokemons: builder.query<EntityState<Pokemon>, void>({
-      query: () => '/',
-      transformResponse: async responseData => {
+  endpoints: (builder) => ({
+    getPokemons: builder.query<EntityState<Pokemon>, { offset: number; limit: number }>({
+      query: ({ offset, limit }) => `/?offset=${offset}&limit=${limit}`,
+      transformResponse: async (responseData: any) => {
         const results = responseData.results;
 
         const pokemons = await Promise.all(
-          results.map(async pokemon => {
+          results.map(async (pokemon) => {
             try {
               const pokemonDetails = await getPokemonDetails(pokemon.url);
               return pokemonDetails;
@@ -48,17 +44,13 @@ export const pokemonsApiSlice = apiSlice.injectEndpoints({
               console.error(error);
               return null;
             }
-          }),
+          })
         );
 
         // Filter out any null values (failed requests)
-        const filteredPokemons = pokemons.filter(pokemon => pokemon !== null);
-        return pokemonsAdapter.setAll(initialState, filteredPokemons);
-      },
-      providesTags: (result, error, arg) => [
-        { type: 'Pokemon', id: "LIST" },
-        ...result?.ids.map(id => ({ type: 'Pokemon', id }))
-    ]
+        const filteredPokemons = pokemons.filter((pokemon) => pokemon !== null);
+        return pokemonsAdapter.addMany(initialState, filteredPokemons);
+      }
     }),
   }),
 });
