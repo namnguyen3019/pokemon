@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useAppSelector } from '../../app/hooks';
 import { RootState } from '../../app/store';
+import CartItem from './CartItem';
 import { selectTotalPrice } from './cartSlice';
 
 const Cart = () => {
@@ -10,16 +11,19 @@ const Cart = () => {
 
   return (
     <View style={styles.container}>
-      {items.map(item => (
-        <View key={item.id} style={styles.item}>
-          <Text>Name: {item.name}</Text>
-          <Text>Quantity: {item.quantity}</Text>
-          <Text>Weight: {item.weight} kg</Text>
-          <Text>Unit Price: ${item.weight}</Text>
-          <Text>Sub-price: ${item.weight*item.quantity}</Text> 
-        </View>
-      ))}
-      <Text style={styles.totalPrice}>Total Price: ${totalPrice.toFixed(2)}</Text>
+      {items.length === 0 ? (
+        <Text>Your cart is empty</Text>
+      ) : (
+        <FlatList
+          data={items}
+          renderItem={({item}) => <CartItem item={item}/>}
+          keyExtractor={item => item.id.toString()}
+          style={styles.flatList}
+        />
+      )}
+      <Text style={styles.totalPrice}>
+        Total Price: ${totalPrice.toFixed(2)}
+      </Text>
     </View>
   );
 };
@@ -29,16 +33,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  item: {
-    marginBottom: 10,
-    borderWidth: 1,
-    padding: 10,
-    borderRadius: 5,
+  flatList: {
+    flexGrow: 0,
   },
   totalPrice: {
     marginTop: 10,
