@@ -36,12 +36,11 @@ export const pokemonsApiSlice = apiSlice.injectEndpoints({
         const results = responseData.results;
 
         const pokemons = await Promise.all(
-          results.map(async (pokemon) => {
+          results.map(async (pokemon:any) => {
             try {
               const pokemonDetails = await getPokemonDetails(pokemon.url);
               return pokemonDetails;
             } catch (error) {
-              console.error(error);
               return null;
             }
           })

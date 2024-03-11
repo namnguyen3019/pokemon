@@ -1,15 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@reduxjs/toolkit/query';
+import { Pokemon } from '../Pokemon/pokemonsSlice';
 
-interface PokemonItem {
-  id: number;
-  name: string;
-  weight: number;
+export type CartItem  = {
+  item: Pokemon;
   quantity: number; // New field for quantity
 }
 
 interface CartState {
-  items: PokemonItem[];
+  items: CartItem[];
 }
 
 const initialState: CartState = {
@@ -20,26 +19,23 @@ const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    addItemToCart: (state, action: PayloadAction<PokemonItem>) => {
+    addItemToCart: (state, action: PayloadAction<Pokemon>) => {
       const newItem = action.payload;
-      const existingItemIndex = state.items.findIndex(item => item.id === newItem.id);
-      console.log(existingItemIndex);
+      const existingItemIndex = state.items.findIndex(cartItem => cartItem.item.id === newItem.id);
       if (existingItemIndex !== -1) {
         state.items[existingItemIndex].quantity += 1;
       } else {
-        // If item is not in cart, add it with quantity 1
-        state.items.push({ ...newItem, quantity: 1 });
+        state.items.push({ item: newItem, quantity: 1 });
       }
     },
     changeItemQuantity: (state, action) => {
       const {itemId, newQuantity} = action.payload;
-      const existingItemIndex = state.items.findIndex(item => item.id === itemId);
+      const existingItemIndex = state.items.findIndex(cartItem => cartItem.item.id === itemId);
       state.items[existingItemIndex].quantity = newQuantity
     },
-
     removeItemFromCart: (state, action: PayloadAction<number>) => {
       const itemIdToRemove = action.payload;
-      state.items = state.items.filter(item => item.id !== itemIdToRemove);
+      state.items = state.items.filter(cartItem =>cartItem.item.id !== itemIdToRemove);
     },
   },
 });
@@ -47,6 +43,6 @@ const cartSlice = createSlice({
 export const { addItemToCart, removeItemFromCart, changeItemQuantity } = cartSlice.actions;
 export const selectTotalPrice = (state: RootState): number => {
   const { items } = state.cart;
-  return items.reduce((totalPrice: number, item: PokemonItem) => totalPrice + (item.weight * item.quantity), 0);
+  return items.reduce((totalPrice: number, cartItem: CartItem) => totalPrice + (cartItem.item.weight * cartItem.quantity), 0);
 };
 export default cartSlice.reducer;
