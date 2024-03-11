@@ -1,8 +1,8 @@
 import { Picker } from '@react-native-picker/picker';
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppDispatch } from '../../app/hooks';
-import { changeItemQuantity } from './cartSlice';
+import { changeItemQuantity, removeItemFromCart } from './cartSlice';
 
 type CartItemProp = {
   id: number;
@@ -20,20 +20,35 @@ const CartItem = ({ item }: { item: CartItemProp }) => {
     dispatch(changeItemQuantity({ itemId: item.id, newQuantity: value }));
   };
 
+  const handleRemoveItem = () => {
+    Alert.alert("remove item");
+    dispatch(removeItemFromCart(item.id));
+  }
   return (
     <View style={styles.item}>
       <Text>Name: {item.name}</Text>
-      <Picker
-        selectedValue={quantity}
-        onValueChange={(itemValue: number) => handleQuantityChange(itemValue)}>
-        {[...Array(10)].map((_, index) => (
-          <Picker.Item
-            key={index + 1}
-            label={(index + 1).toString()}
-            value={index + 1}
-          />
-        ))}
-      </Picker>
+      <View style={styles.quantity}>
+        <Picker
+          style={styles.picker}
+          mode='dropdown'
+          selectedValue={quantity}
+          onValueChange={(itemValue: number) =>
+            handleQuantityChange(itemValue)
+          }>
+          {[...Array(10)].map((_, index) => (
+            <Picker.Item
+              key={index + 1}
+              label={(index + 1).toString()}
+              value={index + 1}
+            />
+          ))}
+        </Picker>
+
+        <TouchableOpacity style={styles.removeButton} onPress={handleRemoveItem}>
+          <Text style={styles.removeText}>Remove</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text>Weight: {item.weight} kg</Text>
       <Text>Unit Price: ${item.weight.toFixed(2)}</Text>
       <Text>Sub-price: ${(item.weight * item.quantity).toFixed(2)}</Text>
@@ -59,11 +74,25 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 5,
   },
-  totalPrice: {
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
+  quantity: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
+  picker: {
+    flex: 2,
+  },
+  removeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 5,
+    backgroundColor: '#C70000',
+    alignItems: 'center',
+  },
+  removeText:{
+    color: 'white'
+  }
 });
 
 export default CartItem;
