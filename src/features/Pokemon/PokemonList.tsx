@@ -1,22 +1,52 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Text } from 'react-native';
 import PokemonItem from './PokemonItem';
-import { useGetPokemonsQuery } from './pokemonsSlice';
+import { useLazyGetPokemonsQuery } from './pokemonsSlice';
 
 const PokemonList = () => {
+  const flatListRef = React.useRef(null);
 
-  const [offset, setOffSet] = useState(0);
-  const [limit, setLimit] = useState(20);
+  const toTop = () => {
+    // use current
+    flatListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
+  };
+  const offset = useRef(0);
+  const [limit, setLimit] = useState(100);
 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const {
-    currentData: data,
-    isLoading,
-    isError,
-    refetch: refetchPokemons
-  } = useGetPokemonsQuery('getPokemons', {offset, limit});
+  const [
+    fetchPokemons,
+    { status, currentData, data, isFetching, isLoading, isError },
+  ] = useLazyGetPokemonsQuery();
 
+  const fetchFirstPage = async () => {
+    if (isFetching) return;
+    await fetchPokemons({ offset: 0, limit });
+  };
+  const fetchMorePokemons = async () => {
+    setIsLoadingMore(true);
+    offset.current += limit;
+    await fetchPokemons({ offset: offset.current, limit });
+    setIsLoadingMore(false);
+  };
+
+  const fetchPrevPage = async () => {
+    if (offset.current >= limit) {
+      offset.current -= limit;
+      await fetchPokemons({ offset: offset.current, limit });
+      toTop();
+    }
+  };
+  const renderFooter = () => {
+    return isLoadingMore ? (
+      <Text style={{ textAlign: 'center' }}>Loading more...</Text>
+    ) : null;
+  };
+
+  useEffect(() => {
+    fetchFirstPage();
+  }, []);
 
   if (isLoading) {
     return <Text>Loading..</Text>;
@@ -24,27 +54,18 @@ const PokemonList = () => {
   if (isError) {
     return <Text>Something went wrong</Text>;
   }
-
-  const fetchMorePokemons = async () => {
-    if (!isLoadingMore) {
-      setIsLoadingMore(true);
-      setOffSet(offset => offset + limit);
-    }
-  };
-  const renderFooter = () => {
-    return isLoadingMore ? <Text style={{textAlign:'center'}}>Loading more...</Text> : null;
-  };
-
-  let  content = data?.ids.map(pokemonId => data.entities[pokemonId]);
-
+  let content = data?.ids.map(pokemonId => data.entities[pokemonId]);
   return (
     <FlatList
+      ref={flatListRef}
       data={content}
       renderItem={item => <PokemonItem details={item.item} />}
       numColumns={2}
-      keyExtractor={(item:any)=> item?.id.toString()}
+      keyExtractor={(item: any) => item?.id.toString()}
+      refreshing={false}
+      onRefresh={fetchPrevPage}
       onEndReached={fetchMorePokemons}
-      onEndReachedThreshold={0.8}
+      onEndReachedThreshold={0.5}
       ListFooterComponent={renderFooter}
     />
   );

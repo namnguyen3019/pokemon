@@ -54,4 +54,4 @@ export const pokemonsApiSlice = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetPokemonsQuery } = pokemonsApiSlice;
+export const { useGetPokemonsQuery, useLazyGetPokemonsQuery } = pokemonsApiSlice;
