@@ -28,7 +28,7 @@ const PokemonList = () => {
   const fetchMorePokemons = async () => {
     if (!isLoadingMore) {
       setIsLoadingMore(true);
-      
+      setOffSet(offset => offset + limit);
     }
   };
   const renderFooter = () => {
@@ -44,7 +44,7 @@ const PokemonList = () => {
       numColumns={2}
       keyExtractor={(item:any)=> item?.id.toString()}
       onEndReached={fetchMorePokemons}
-      onEndReachedThreshold={0.2}
+      onEndReachedThreshold={0.8}
       ListFooterComponent={renderFooter}
     />
   );
