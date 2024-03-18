@@ -1,21 +1,16 @@
-import { EntityState, createEntityAdapter } from '@reduxjs/toolkit';
-import axios from 'axios';
-import { apiSlice } from '../../api/apiSlice';
+import { createEntityAdapter } from "@reduxjs/toolkit";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import axios from "axios";
+import { BASE_URL } from "../../constants";
 
-export interface Pokemon {
-  id: number;
-  name: string;
-  icon: string;
-  weight: number;
-}
-
-const pokemonsAdapter = createEntityAdapter<Pokemon>({
-  selectId: (a: Pokemon) => a.id,
+// Create Adapter For pokemons To Avoid Duplicates
+const pokemonsAdapter = createEntityAdapter({
+  selectId: (pokemon) => pokemon.id,
 });
 
-const initialState = pokemonsAdapter.getInitialState();
-
-async function getPokemonDetails(url: string): Promise<Pokemon> {
+// I used this api because i couldnt find a better one.
+const API_ENDPOINT = BASE_URL;
+async function getPokemonDetails(url: string) {
   try {
     const { data } = await axios.get(url);
     const weight = data.weight;
@@ -27,13 +22,24 @@ async function getPokemonDetails(url: string): Promise<Pokemon> {
     throw error;
   }
 }
-
-export const pokemonsApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getPokemons: builder.query<EntityState<Pokemon>, { offset: number; limit: number }>({
-      query: ({ offset, limit }) => `/?offset=${offset}&limit=${limit}`,
-      transformResponse: async (responseData: any) => {
-        const results = responseData.results;
+const pokemonsApi = createApi({
+  reducerPath: "pokemons",
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${API_ENDPOINT}`,
+    prepareHeaders: (headers) => {
+      headers.set("Content-Type", "application/json");
+      headers.set("Accept", "application/json");
+      return headers;
+    },
+  }),
+  endpoints: (build) => ({
+    fetchPokemons: build.query({
+      keepUnusedDataFor: 600, // Keep unused for longer,
+      query: (page) => {
+        return `pokemon?offset=${(page-1)*20}&limit=20`;
+      },
+      transformResponse: async (response: any) => {
+        const results = response.results;
 
         const pokemons = await Promise.all(
           results.map(async (pokemon:any) => {
@@ -48,10 +54,47 @@ export const pokemonsApiSlice = apiSlice.injectEndpoints({
 
         // Filter out any null values (failed requests)
         const filteredPokemons = pokemons.filter((pokemon) => pokemon !== null);
-        return pokemonsAdapter.addMany(initialState, filteredPokemons);
-      }
+        return pokemonsAdapter.addMany(
+          pokemonsAdapter.getInitialState({
+            hasMorePages: true,
+          }),
+          filteredPokemons
+        );
+      },
+      async onQueryStarted(page, { queryFulfilled, dispatch }) {
+        if (!page) {
+          return;
+        }
+        const { data, error } = await queryFulfilled;
+
+        if (data) {
+          // Add pokemons On Current Request To Page 1
+          dispatch(
+            pokemonsApi.util.updateQueryData("fetchPokemons", 1, (draft) => {
+              pokemonsAdapter.addMany(draft, pokemonsSelectors.selectAll(data));
+              draft.hasMorePages;
+            })
+          );
+
+          if (page > 1) {
+            // Remove Cached Data From State Since We Already Added It To Page 1
+            dispatch(
+              pokemonsApi.util.updateQueryData("fetchPokemons", page, (draft) => {
+                draft = pokemonsAdapter.getInitialState();
+              })
+            );
+          }
+        }
+      },
     }),
   }),
 });
 
-export const { useGetPokemonsQuery, useLazyGetPokemonsQuery } = pokemonsApiSlice;
+export const { useLazyFetchPokemonsQuery } = pokemonsApi;
+
+export default pokemonsApi;
+
+const pokemonsSelectors = pokemonsAdapter.getSelectors((state) => state);
+
+export { pokemonsAdapter, pokemonsSelectors };
+
