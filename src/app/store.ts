@@ -1,13 +1,13 @@
 import { Action, ThunkAction, configureStore } from '@reduxjs/toolkit';
-import { apiSlice } from '../api/apiSlice';
 import cartReducer from '../features/Cart/cartSlice';
+import pokemonsApi from '../features/Pokemon/pokemonsSlice';
 export const store = configureStore({
   reducer: { 
     cart: cartReducer,
-    [apiSlice.reducerPath]: apiSlice.reducer
+    [pokemonsApi.reducerPath]: pokemonsApi.reducer
   },
   middleware: getDefaultMiddleware =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+    getDefaultMiddleware().concat(pokemonsApi.middleware),
   devTools: true,
 });
 

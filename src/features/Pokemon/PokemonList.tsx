@@ -1,72 +1,54 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { FlatList } from 'react-native';
 import PokemonItem from './PokemonItem';
-import { useLazyGetPokemonsQuery } from './pokemonsSlice';
+import pokemonsApi, { pokemonsAdapter, pokemonsSelectors, useLazyFetchPokemonsQuery } from './pokemonsSlice';
 
 const PokemonList = () => {
-  const flatListRef = React.useRef(null);
 
-  const toTop = () => {
-    // use current
-    flatListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
-  };
-  const offset = useRef(0);
-  const [limit, setLimit] = useState(100);
+  const currentPage = useRef(1);
 
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [fetchPokemons, { isFetching }] =
+  useLazyFetchPokemonsQuery();
 
-  const [
-    fetchPokemons,
-    { status, currentData, data, isFetching, isLoading, isError },
-  ] = useLazyGetPokemonsQuery();
-
+  // Listen For Posts Updates Page 1
+  const { pokemons, hasMorePages } =
+    pokemonsApi.endpoints.fetchPokemons.useQueryState(1, {
+      selectFromResult: (result) => {
+        return {
+          hasMorePages: result.data?.hasMorePages,
+          pokemons: pokemonsSelectors.selectAll(
+              result.data ?? pokemonsAdapter.getInitialState()
+            ),
+        };
+      },
+    });
+  
   const fetchFirstPage = async () => {
-    if (isFetching) return;
-    await fetchPokemons({ offset: 0, limit });
-  };
-  const fetchMorePokemons = async () => {
-    setIsLoadingMore(true);
-    offset.current += limit;
-    await fetchPokemons({ offset: offset.current, limit });
-    setIsLoadingMore(false);
+    await fetchPokemons(1);
   };
 
-  const fetchPrevPage = async () => {
-    if (offset.current >= limit) {
-      offset.current -= limit;
-      await fetchPokemons({ offset: offset.current, limit });
-      toTop();
-    }
+  const fetchMorePokemons= async () => {
+    if(!hasMorePages || isFetching) return;
+    currentPage.current += 1;
+    await fetchPokemons(currentPage.current);
   };
-  const renderFooter = () => {
-    return isLoadingMore ? (
-      <Text style={{ textAlign: 'center' }}>Loading more...</Text>
-    ) : null;
-  };
-
+  
   useEffect(() => {
-    fetchFirstPage();
-  }, []);
+    // Fetch First Page On Init
+    fetchFirstPage()
+  }, [])
 
-  if (isLoading) {
-    return <Text>Loading..</Text>;
-  }
-  if (isError) {
-    return <Text>Something went wrong</Text>;
-  }
-  let content = data?.ids.map(pokemonId => data.entities[pokemonId]);
+  console.log(pokemons);
+
   return (
     <FlatList
-      ref={flatListRef}
-      data={content}
+      data={pokemons}
       renderItem={item => <PokemonItem details={item.item} />}
       numColumns={2}
       keyExtractor={(item: any) => item?.id.toString()}
       refreshing={false}
-      onRefresh={fetchPrevPage}
       onEndReached={fetchMorePokemons}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={renderFooter}
+      onEndReachedThreshold={0.8}
     />
   );
 };
